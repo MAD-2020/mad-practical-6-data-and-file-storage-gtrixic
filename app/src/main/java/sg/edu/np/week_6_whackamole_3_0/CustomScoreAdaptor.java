@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 
 import java.util.ArrayList;
 
@@ -19,16 +20,30 @@ public class CustomScoreAdaptor extends RecyclerView.Adapter<CustomScoreViewHold
     private static final String FILENAME = "CustomScoreAdaptor.java";
     private static final String TAG = "Whack-A-Mole3.0!";
 
-    public CustomScoreAdaptor(UserData userdata){
+    ArrayList<Integer> data;
+    private OnItemClickListener onItemClickListener;
+
+    public CustomScoreAdaptor(ArrayList<Integer> data){
         /* Hint:
         This method takes in the data and readies it for processing.
          */
+        this.data = data;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener onItem) {
+        this.onItemClickListener = onItem;
+    }
+
+    public interface OnItemClickListener{
+        void ItemClick(int position);
     }
 
     public CustomScoreViewHolder onCreateViewHolder(ViewGroup parent, int viewType){
         /* Hint:
         This method dictates how the viewholder layuout is to be once the viewholder is created.
          */
+        View item =LayoutInflater.from(parent.getContext()).inflate(R.layout.level_select, parent, false);
+        return new CustomScoreViewHolder(item, onItemClickListener);
     }
 
     public void onBindViewHolder(CustomScoreViewHolder holder, final int position){
@@ -40,11 +55,17 @@ public class CustomScoreAdaptor extends RecyclerView.Adapter<CustomScoreViewHold
         Log.v(TAG, FILENAME + " Showing level " + level_list.get(position) + " with highest score: " + score_list.get(position));
         Log.v(TAG, FILENAME+ ": Load level " + position +" for: " + list_members.getMyUserName());
          */
+        String level = "Level: " + (position+1);
+        String hs = "Score: " + (data.get(position));
+        holder.level.setText(level);
+        holder.score.setText(hs);
+
     }
 
     public int getItemCount(){
         /* Hint:
         This method returns the the size of the overall data.
          */
+        return data.size();
     }
 }

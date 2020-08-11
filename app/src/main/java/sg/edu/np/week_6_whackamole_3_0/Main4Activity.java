@@ -36,6 +36,16 @@ public class Main4Activity extends AppCompatActivity {
     private static final String TAG = "Whack-A-Mole3.0!";
     CountDownTimer readyTimer;
     CountDownTimer newMolePlaceTimer;
+    Button backButton;
+    int scores = 0;
+    TextView score;
+    Integer currentLevel;
+    String username;
+    ArrayList<Button> buttonList = new ArrayList<>();
+    final Toast[] checkToast = {null};
+    MyDBHandler dbHandler = new MyDBHandler(this, null, null, 1);
+
+
 
     private void readyTimer(){
         /*  HINT:
@@ -47,6 +57,29 @@ public class Main4Activity extends AppCompatActivity {
             belongs here.
             This timer countdown from 10 seconds to 0 seconds and stops after "GO!" is shown.
          */
+        readyTimer = new CountDownTimer(10000,1000) {
+
+            public void onTick(long millisUntilFinished) {
+                Log.v(TAG, "Ready Countdown!" + millisUntilFinished/1000);
+                if (checkToast[0] != null){
+                    checkToast[0].cancel();
+                }
+                checkToast[0] = Toast.makeText(getApplicationContext(), "Get Ready In " + millisUntilFinished/1000 + " seconds.", Toast.LENGTH_SHORT);
+                checkToast[0].show();
+            }
+
+            public void onFinish() {
+                Log.v(TAG, "Ready countdown complete!");
+                if (checkToast[0] != null)
+                {
+                    checkToast[0].cancel();
+                }
+                checkToast[0] = Toast.makeText(getApplicationContext(), "GO!", Toast.LENGTH_SHORT);
+                checkToast[0].show();
+                placeMoleTimer();
+            }
+        };
+        readyTimer.start();
     }
     private void placeMoleTimer(){
         /* HINT:
@@ -56,11 +89,26 @@ public class Main4Activity extends AppCompatActivity {
            belongs here.
            This is an infinite countdown timer.
          */
+        Integer cdInterval = (11 - currentLevel) * 1000;
+        newMolePlaceTimer = new CountDownTimer(cdInterval, cdInterval) {
+
+            public void onTick(long l) {
+                Log.v(TAG, "New Mole Location!");
+                setNewMole();
+            }
+
+            @Override
+            public void onFinish() {
+                newMolePlaceTimer.start();
+            }
+        };
+        newMolePlaceTimer.start();
     }
     private static final int[] BUTTON_IDS = {
             /* HINT:
                 Stores the 9 buttons IDs here for those who wishes to use array to create all 9 buttons.
                 You may use if you wish to change or remove to suit your codes.*/
+            R.id.button1a,R.id.button1b,R.id.button1c,R.id.button2a,R.id.button2b,R.id.button2c,R.id.button3a,R.id.button3b,R.id.button3c
     };
 
     @Override
@@ -75,6 +123,22 @@ public class Main4Activity extends AppCompatActivity {
             It also prepares the back button and updates the user score to the database
             if the back button is selected.
          */
+        score = findViewById(R.id.currentScore);
+        backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                updateUserScore();
+                Intent chooseLevel = new Intent(Main4Activity.this, Main3Activity.class);
+                chooseLevel.putExtra("username", username);
+                startActivity(chooseLevel);
+            }
+        });
+
+        Intent getInfo = getIntent();
+        Bundle b = getInfo.getExtras();
+        username = b.getString("Username");
+        currentLevel = b.getInt("Level");
 
 
         for(final int id : BUTTON_IDS){
@@ -82,22 +146,14 @@ public class Main4Activity extends AppCompatActivity {
             This creates a for loop to populate all 9 buttons with listeners.
             You may use if you wish to remove or change to suit your codes.
             */
+            Button button = findViewById(id);
+            buttonList.add(button);
         }
     }
     @Override
     protected void onStart(){
         super.onStart();
         readyTimer();
-    }
-    private void doCheck(Button checkButton)
-    {
-        /* Hint:
-            Checks for hit or miss
-            Log.v(TAG, FILENAME + ": Hit, score added!");
-            Log.v(TAG, FILENAME + ": Missed, point deducted!");
-            belongs here.
-        */
-
     }
 
     public void setNewMole()
@@ -108,7 +164,34 @@ public class Main4Activity extends AppCompatActivity {
          */
         Random ran = new Random();
         int randomLocation = ran.nextInt(9);
-
+        if (currentLevel < 6)
+        {
+            Button rb = buttonList.get(randomLocation);
+            for (Button b : buttonList) {
+                if (b == rb) {
+                    b.setText("*");
+                } else {
+                    b.setText("O");
+                }
+            }
+        }
+        else
+        {
+            int randomLocation2 = ran.nextInt(9);
+            if (randomLocation == randomLocation2)
+            {
+                randomLocation2 = ran.nextInt(9);
+            }
+            Button rb = buttonList.get(randomLocation);
+            Button rb2 = buttonList.get(randomLocation2);
+            for (Button b : buttonList) {
+                if (b == rb || b == rb2) {
+                    b.setText("*");
+                } else {
+                    b.setText("O");
+                }
+            }
+        }
     }
 
     private void updateUserScore()
@@ -120,6 +203,47 @@ public class Main4Activity extends AppCompatActivity {
       */
         newMolePlaceTimer.cancel();
         readyTimer.cancel();
+
+        UserData user = dbHandler.findUser(username);
+        int highScore = user.getScores().get(currentLevel-1);
+        if (scores > highScore)
+        {
+            Log.v(TAG, FILENAME + ": Update User Score...");
+            user.getScores().set(currentLevel-1, scores);
+            dbHandler.deleteAccount(username);
+            dbHandler.addUser(user);
+        }
+    }
+
+    public void OnClickButton(View v) {
+        Button b = (Button) v;
+        if (Mole(b)) {
+            scores++;
+            score.setText("" + scores);
+            Log.v(TAG, "Hit, score added!");
+            setNewMole();
+        } else {
+            if (scores > 0) {
+                scores--;
+                score.setText("" + scores);
+                Log.v(TAG, "Missed, score deducted!");
+            }
+            else
+            {
+                scores = 0;
+                score.setText("" + scores);
+                Log.v(TAG, "Missed, score deducted!");
+            }
+        }
+
+    }
+
+    public boolean Mole(Button b) {
+        if (b.getText() == "*") {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 }
